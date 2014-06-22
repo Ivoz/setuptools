@@ -18,7 +18,7 @@ from distutils.util import convert_path, subst_vars
 from distutils.errors import DistutilsArgError, DistutilsOptionError, \
     DistutilsError, DistutilsPlatformError
 from distutils.command.install import INSTALL_SCHEMES, SCHEME_KEYS
-from distutils import log, dir_util
+from distutils import log, file_util, dir_util
 from distutils.command.build_scripts import first_line_re
 import sys
 import os
@@ -369,15 +369,18 @@ class easy_install(Command):
             for spec in self.args:
                 self.easy_install(spec, not self.no_deps)
             if self.record:
-                outputs = self.outputs
-                if self.root:  # strip any package prefix
-                    root_len = len(self.root)
-                    for counter in range(len(outputs)):
-                        outputs[counter] = outputs[counter][root_len:]
-                from distutils import file_util
+                # To strip the package prefix, if any
+                root_len = len(self.root) if self.root else 0
+
+                record_files = []
+                for entry in self.outputs:
+                    # Only record files
+                    if os.path.isdir(entry):
+                        continue
+                    record_files.append(entry[root_len:])
 
                 self.execute(
-                    file_util.write_file, (self.record, outputs),
+                    file_util.write_file, (self.record, record_files),
                     "writing list of installed files to '%s'" %
                     self.record
                 )
